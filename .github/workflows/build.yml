@@ -1,0 +1,54 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup & Build APK
+        run: |
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          chmod +x setup.sh
+          ./setup.sh
+          sed -i 's/androidx.appcompat.app.AppCompatActivity/android.app.Activity/g' app/src/main/java/com/retro/cassettewidget/MainActivity.kt
+          sed -i 's/AppCompatActivity/Activity/g' app/src/main/java/com/retro/cassettewidget/MainActivity.kt
+          sed -i 's/ContextCompat.getDrawable(this, R.drawable.ic_cassette_reel)/getDrawable(R.drawable.ic_cassette_reel)/g' app/src/main/java/com/retro/cassettewidget/MusicNotificationListener.kt
+          sed -i '/androidx.core.content.ContextCompat/d' app/src/main/java/com/retro/cassettewidget/MusicNotificationListener.kt
+          sed -i 's/Theme.MaterialComponents.DayNight.NoActionBar/android:Theme.DeviceDefault.NoActionBar/g' app/src/main/AndroidManifest.xml
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+          android {
+              namespace 'com.retro.cassettewidget'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.retro.cassettewidget"
+                  minSdk 26
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = '17' }
+          }
+          EOF
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          ./gradle-8.5/bin/gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Retro-Cassette-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
