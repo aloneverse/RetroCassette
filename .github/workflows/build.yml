@@ -17,6 +17,8 @@ jobs:
       - run: bash setup.sh
       - run: bash patch.sh
       - run: bash patch2.sh
+      - run: |
+          sed -i "s/applicationId 'com.retro.musicwidget'/applicationId 'com.retro.musicwidget2'/" app/build.gradle
       - run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
